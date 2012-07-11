@@ -5,18 +5,23 @@
 
 =head1 NAME
 
-check_backup - Plugin to graph the number of backup file
+kepco - Plugin to graph the electric demand and supply forecast from KEPCO
 
 =head1 CONFIGURATION
 
 The following environment variables are used by this plugin
 
- base_dir
- target_dir
+ forecast_url
+ status_url
+
+Use as below:
+ ln -s kepco kepco_value
+ ln -s kepco kepco_temperature
+ ln -s kepco kepco_percent
 
 =head1 AUTHOR
 
-Unknown author
+Junn
 
 =head1 LICENSE
 
