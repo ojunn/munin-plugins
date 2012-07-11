@@ -1,0 +1,98 @@
+#!/bin/sh
+# -*- sh -*-
+
+: << =cut
+
+=head1 NAME
+
+check_backup - Plugin to graph the number of backup file
+
+=head1 CONFIGURATION
+
+The following environment variables are used by this plugin
+
+ base_dir
+ target_dir
+
+=head1 AUTHOR
+
+Unknown author
+
+=head1 LICENSE
+
+Unknown license
+
+=head1 MAGIC MARKERS
+
+ #%# family=auto
+
+=cut
+
+forecast_url=${forecast_url:-http://www.kepco.co.jp/yamasou/yamasou_forecast1.csv}
+status_url=${status_url:-http://www.kepco.co.jp/yamasou/yamasou_state.csv}
+
+wget_bin=$(which wget)
+
+mode=`basename $0 | sed 's/^kepco_//g'`
+if [ "x$mode" != "xpercent" -a "x$mode" != "xtemperature" ]; then
+	mode="value"
+fi
+
+if [ "$1" = "config" ]; then
+    echo "graph_title Kepco Power Forecast ($mode)"
+    echo "graph_args --base 1000 -l 0"
+    echo "graph_vlabel number"
+    echo "graph_category etc"
+    echo "graph_info This graph shows power suply forecast from KEPCO"
+    
+    if [ "x$mode" = "xpercent" ]; then
+	    echo "current_percent.label current power suply (%)"
+	    echo "current_percent.info Current electric power suply in percent"
+	    echo "forecast_percent.label consumption forecast (%)"
+	    echo "forecast_percent.info Electric power consumption forecast in percent"
+	    echo "forecast_percent.warning :98"
+	elif [ "x$mode" = "xtemperature" ]; then
+	    echo "temparature_max.label high temperature forecast"
+	    echo "temparature_max.info Temperature Forecast - Daytime High"
+	    echo "temparature_min.label low temperature forecast"
+	    echo "temparature_min.info Temperature Forecast - Morning Low"
+	else
+	    echo "current.label current power suply (10 MW)"
+	    echo "current.info Current electric power suply"
+	    echo "max.label available power (10 MW)"
+	    echo "max.info Available electric power suply"
+	    echo "forecast.label consumption forecast (10 MW)"
+	    echo "forecast.info Electric power consumption forecast"
+	fi
+    exit 0
+fi
+
+
+
+TMPDIR=`mktemp -d` || exit 1
+trap "rm -rf $TMPDIR" EXIT
+cd $TMPDIR || exit 1
+
+$wget_bin -q --no-cache --output-document=forecast $forecast_url 
+$wget_bin -q --no-cache --output-document=status $status_url
+
+max=`head -2 status|tail -1|sed -e 's/[^0-9]//g'`
+current=`head -3 status|tail -1|sed -e 's/[^0-9]//g'`
+current_percent=`head -4 status|tail -1|sed -e 's/[^0-9]//g'`
+forecast=`head -5 forecast|tail -1|sed -e 's/[^0-9]//g'`
+forecast_percent=`head -8 forecast|tail -1|sed -e 's/[^0-9]//g'`
+temperature_min=`head -10 forecast|tail -1|sed -e 's/\([0-9]\+\)[^0-9]\+\([0-9]\+\)[^0-9]\+/\1/'`
+temperature_max=`head -10 forecast|tail -1|sed -e 's/\([0-9]\+\)[^0-9]\+\([0-9]\+\)[^0-9]\+/\2/'`
+
+if [ "x$mode" = "xpercent" ]; then
+	echo "current_percent.value ${current_percent}"
+	echo "forecast_percent.value ${forecast_percent}"
+elif [ "x$mode" = "xtemperature" ]; then
+	echo "temparature_max.value ${temperature_max}"
+	echo "temparature_min.value ${temperature_min}"
+else
+	echo "current.value ${current}"
+	echo "max.value ${max}"
+	echo "forecast.value ${forecast}"
+fi
+
