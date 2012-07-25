@@ -45,11 +45,11 @@ fi
 
 if [ "$1" = "config" ]; then
     echo "graph_title Kepco Power Forecast ($mode)"
-    echo "graph_args --base 1000 -l 0"
     echo "graph_category Other"
     echo "graph_info This graph shows power suply forecast from KEPCO"
     
     if [ "x$mode" = "xpercent" ]; then
+	    echo "graph_args --base 1000 -l 0 -u 100 -r"
 	    echo "graph_vlabel power (%)"
 	    echo "current_percent.label current power suply (%)"
 	    echo "current_percent.info Current electric power suply in percent"
@@ -57,12 +57,14 @@ if [ "$1" = "config" ]; then
 	    echo "forecast_percent.info Electric power consumption forecast in percent"
 	    echo "forecast_percent.warning :98"
 	elif [ "x$mode" = "xtemperature" ]; then
+	    #echo "graph_args --base 1000 -l 0"
 	    echo "graph_vlabel temperature (celsius)"
 	    echo "temparature_max.label high temperature forecast"
 	    echo "temparature_max.info Temperature Forecast - Daytime High"
 	    echo "temparature_min.label low temperature forecast"
 	    echo "temparature_min.info Temperature Forecast - Morning Low"
 	else
+	    echo "graph_args --base 1000 -l 0"
 	    echo "graph_vlabel power (10 MW)"
 	    echo "current.label current power suply (10 MW)"
 	    echo "current.info Current electric power suply"
