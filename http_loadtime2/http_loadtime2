@@ -1,0 +1,85 @@
+#!/bin/sh
+# -*- sh -*-
+
+: << =cut
+
+=head1 NAME
+
+http_loadtime2 - Plugin to graph HTTP response time of a specific page
+
+=head1 CONFIGURATION
+
+The following environment variables are used by this plugin
+
+ target - URL to fetch (default: "http://localhost/")
+
+
+[http_loadtile2]
+env.target http://www.google.com/
+
+This plugin requires wget to run.
+% apt-get install wget # for Ubuntu and etc.
+% yum install wget     # for Cent OS and etc.  
+
+=head1 AUTHOR
+
+Unknown author
+
+=head1 LICENSE
+
+Unknown license
+
+=head1 MAGIC MARKERS
+
+ #%# family=auto
+ #%# capabilities=autoconf
+
+=cut
+
+url=${target:-"http://localhost/"}
+time_bin=$(which time)
+wget_bin=$(which wget)
+
+if [ "$1" = "autoconf" ]; then
+    result="yes"
+    [ "x$time_bin" = "x" ] && result=1
+    [ "x$wget_bin" = "x" ] && result=2
+    if [ "$result" != "yes" ]; then
+	echo "no (need time and wget programs)"
+	exit 0
+    fi
+    echo yes
+    exit 0
+fi
+
+if [ "$1" = "config" ]; then
+    echo "graph_title HTTP loadtime of a page"
+    echo "graph_args --base 1000 -l 0"
+    echo "graph_vlabel Load time in seconds"
+    echo "graph_category network"
+    echo "graph_info This graph shows load time in seconds of $hostname (${ip_address})"
+    echo "responce_time.label responce time"
+    echo "responce_time.info Responce time"
+    echo "loadtime_page.label simple loadtime"
+    echo "loadtime_page.info Load time to download an html file"
+    echo "loadtime_all.label total loadtime"
+    echo "loadtime_all.info Load time to download whole contents"
+    exit 0
+fi
+
+TMPDIR=`mktemp -d` || exit 1
+
+trap "rm -rf $TMPDIR" EXIT
+
+wget_opt=" -q --no-cache "
+
+cd $TMPDIR || exit 1
+$($wget_bin --spider $wget_opt --header="Host: ${hostname}" $url) 
+responce_time=$($time_bin -p $wget_bin --spider          $wget_opt --header="Host: ${hostname}" $url 2>&1 | awk '/^real / { print $2 }')
+loadtime_page=$($time_bin -p $wget_bin    --delete-after $wget_opt --header="Host: ${hostname}" $url 2>&1 | awk '/^real / { print $2 }')
+loadtime_all=$($time_bin  -p $wget_bin -p --delete-after $wget_opt --header="Host: ${hostname}" $url 2>&1 | awk '/^real / { print $2 }')
+cd ..
+
+echo "responce_time.value $responce_time"
+echo "loadtime_page.value $loadtime_page"
+echo "loadtime_all.value $loadtime_all"
