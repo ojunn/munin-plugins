@@ -74,12 +74,12 @@ trap "rm -rf $TMPDIR" EXIT
 wget_opt=" -q --no-cache "
 
 cd $TMPDIR || exit 1
-$($wget_bin --spider $wget_opt --header="Host: ${hostname}" $url) 
-responce_time=$($time_bin -p $wget_bin --spider          $wget_opt --header="Host: ${hostname}" $url 2>&1 | awk '/^real / { print $2 }')
-loadtime_page=$($time_bin -p $wget_bin    --delete-after $wget_opt --header="Host: ${hostname}" $url 2>&1 | awk '/^real / { print $2 }')
-loadtime_all=$($time_bin  -p $wget_bin -p --delete-after $wget_opt --header="Host: ${hostname}" $url 2>&1 | awk '/^real / { print $2 }')
+$($wget_bin --spider $wget_opt $url) 
+responce_time=$($time_bin -p $wget_bin    --spider       $wget_opt $url 2>&1 | awk '/^real / { print $2 }')
+loadtime_page=$($time_bin -p $wget_bin    --delete-after $wget_opt $url 2>&1 | awk '/^real / { print $2 }')
+loadtime_all=$($time_bin  -p $wget_bin -p --delete-after $wget_opt $url 2>&1 | awk '/^real / { print $2 }')
 cd ..
 
-echo "responce_time.value $responce_time"
-echo "loadtime_page.value $loadtime_page"
-echo "loadtime_all.value $loadtime_all"
+echo "responce_time.value ${responce_time}"
+echo "loadtime_page.value ${loadtime_page}"
+echo "loadtime_all.value  ${loadtime_all}"
