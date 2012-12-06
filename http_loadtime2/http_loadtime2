@@ -15,7 +15,7 @@ The following environment variables are used by this plugin
 
 
 [http_loadtile2]
-env.target http://www.google.com/
+env.target http://www.google.com/ http://www.yahoo.com/
 
 This plugin requires wget to run.
 % apt-get install wget # for Ubuntu and etc.
@@ -37,6 +37,7 @@ Unknown license
 =cut
 
 url=${target:-"http://localhost/"}
+
 time_bin=$(which time)
 wget_bin=$(which wget)
 
@@ -57,13 +58,16 @@ if [ "$1" = "config" ]; then
     echo "graph_args --base 1000 -l 0"
     echo "graph_vlabel Load time in seconds"
     echo "graph_category network"
-    echo "graph_info This graph shows load time of ${url}."
-    echo "responce_time.label responce time"
-    echo "responce_time.info Responce time for ${url}."
-    echo "loadtime_page.label simple loadtime"
-    echo "loadtime_page.info Time taken to download an html file for ${url}."
-    echo "loadtime_all.label total loadtime"
-    echo "loadtime_all.info Time taken to download whole contents of ${url}."
+    echo "graph_info This graph shows load time of web sites."
+    
+    for i in ${url};do
+	    echo "responce_time.label responce time"
+	    echo "responce_time.info Responce time for ${i}."
+	    echo "loadtime_page.label simple loadtime"
+	    echo "loadtime_page.info Time taken to download an html file for ${i}."
+	    echo "loadtime_all.label total loadtime"
+	    echo "loadtime_all.info Time taken to download whole contents of ${i}."
+    done
     exit 0
 fi
 
@@ -74,12 +78,15 @@ trap "rm -rf $TMPDIR" EXIT
 wget_opt=" -q --no-cache "
 
 cd $TMPDIR || exit 1
-$($wget_bin --spider $wget_opt $url) 
-responce_time=$($time_bin -p $wget_bin    --spider       $wget_opt $url 2>&1 | awk '/^real / { print $2 }')
-loadtime_page=$($time_bin -p $wget_bin    --delete-after $wget_opt $url 2>&1 | awk '/^real / { print $2 }')
-loadtime_all=$($time_bin  -p $wget_bin -p --delete-after $wget_opt $url 2>&1 | awk '/^real / { print $2 }')
-cd ..
 
+for i in ${url};do
+	$($wget_bin --spider $wget_opt $url) 
+	responce_time=$($time_bin -p $wget_bin    --spider       $wget_opt $i 2>&1 | awk '/^real / { print $2 }')
+	loadtime_page=$($time_bin -p $wget_bin    --delete-after $wget_opt $i 2>&1 | awk '/^real / { print $2 }')
+	loadtime_all=$($time_bin  -p $wget_bin -p --delete-after $wget_opt $i 2>&1 | awk '/^real / { print $2 }')
 echo "responce_time.value ${responce_time}"
 echo "loadtime_page.value ${loadtime_page}"
 echo "loadtime_all.value  ${loadtime_all}"
+done
+cd ..
+
