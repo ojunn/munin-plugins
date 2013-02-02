@@ -14,7 +14,7 @@ The following environment variables are used by this plugin
  target - URL to fetch (default: "http://localhost/")
 
 
-[http_loadtile2]
+[http_loadtime2]
 env.target http://www.google.com/ http://www.yahoo.com/
 
 This plugin requires wget to run.
@@ -54,21 +54,24 @@ if [ "$1" = "autoconf" ]; then
 fi
 
 if [ "$1" = "config" ]; then
-    echo "graph_title HTTP loadtime of a page"
-    echo "graph_args --base 1000 -l 0"
-    echo "graph_vlabel Load time in seconds"
-    echo "graph_category network"
-    echo "graph_info This graph shows load time of web sites."
-    
-    for i in ${url};do
-	    echo "responce_time.label responce time"
-	    echo "responce_time.info Responce time for ${i}."
-	    echo "loadtime_page.label simple loadtime"
-	    echo "loadtime_page.info Time taken to download an html file for ${i}."
-	    echo "loadtime_all.label total loadtime"
-	    echo "loadtime_all.info Time taken to download whole contents of ${i}."
-    done
-    exit 0
+	echo "graph_title HTTP loadtime of a page"
+	echo "graph_args --base 1000 -l 0"
+	echo "graph_vlabel Load time in seconds"
+	echo "graph_category network"
+	echo "graph_info This graph shows load time of web sites."
+	
+	n=1
+	for i in ${url};do
+		short_url=`echo ${i} | sed "s|^http://||" | sed "s/^www\\.//" | sed "s@\\.\\(com\\|net\\|org\\|me\\|jp\\)/\\?\\$@@" ` 
+		echo "responce_time_${n}.label responce ${short_url}"
+		echo "responce_time_${n}.info Responce time for ${i}."
+		echo "loadtime_page_${n}.label a page ${short_url}"
+		echo "loadtime_page_${n}.info Time taken to download an html file for ${i}."
+		#echo "loadtime_all_${n}.label whole ${short_url}"
+		#echo "loadtime_all_${n}.info Time taken to download whole contents of ${i}."
+		n=`expr $n + 1`
+	done
+	exit 0
 fi
 
 TMPDIR=`mktemp -d` || exit 1
@@ -79,14 +82,16 @@ wget_opt=" -q --no-cache "
 
 cd $TMPDIR || exit 1
 
+n=1
 for i in ${url};do
-	$($wget_bin --spider $wget_opt $url) 
+	$($wget_bin --spider $wget_opt $i) 
 	responce_time=$($time_bin -p $wget_bin    --spider       $wget_opt $i 2>&1 | awk '/^real / { print $2 }')
 	loadtime_page=$($time_bin -p $wget_bin    --delete-after $wget_opt $i 2>&1 | awk '/^real / { print $2 }')
 	loadtime_all=$($time_bin  -p $wget_bin -p --delete-after $wget_opt $i 2>&1 | awk '/^real / { print $2 }')
-echo "responce_time.value ${responce_time}"
-echo "loadtime_page.value ${loadtime_page}"
-echo "loadtime_all.value  ${loadtime_all}"
+	echo "responce_time_${n}.value ${responce_time}"
+	echo "loadtime_page_${n}.value ${loadtime_page}"
+	#echo "loadtime_all_${n}.value  ${loadtime_all}"
+	n=`expr $n + 1`
 done
 cd ..
 
