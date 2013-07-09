@@ -42,7 +42,7 @@ if [ "$1" = "config" ]; then
 	echo 'graph_category system'
 	echo 'graph_info This graph shows value of max_user_watches and number of subdirectories of designated directory.'
 	echo 'max_user_watches.label max_user_watches'
-	echo 'max_user_watches.draw LINE2'
+	echo 'max_user_watches.draw AREA'
 
 	stack=0
 	while [ $dirs  ]
@@ -53,10 +53,10 @@ if [ "$1" = "config" ]; then
 		basename=`basename $dir | sed y/./_/`
 		echo "$basename.label $dir"
 		if [ $stack -eq 0 ]; then
-			echo "$basename.draw AREA"
+			echo "$basename.draw LINE2"
 			stack=1
 		else
-			echo "$basename.draw STACK"
+			echo "$basename.draw LINE2"
 		fi
 		
 	done
