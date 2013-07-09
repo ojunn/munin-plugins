@@ -1,0 +1,107 @@
+#!/bin/sh
+#
+# inotify
+#
+# sample conf
+# [inotify]
+# user root
+# env.dirs /var/log:/var/www
+#
+# crontab to using cache
+# 2 * * * * rm /tmp/munin-plugin-inotify & /usr/sbin/munin-run inotify
+#
+#%# family=auto
+#%# capabilities=autoconf
+
+find=${find:-`which find`}
+wc=${wc:-`which wc`}
+dirs=${dirs:-/home}":"
+cache=${cache:-/tmp/munin-plugin-inotify}
+max_user_watches=${max_user_watches:-/proc/sys/fs/inotify/max_user_watches}
+
+if [ "$1" = "autoconf" ]; then
+    if [ -x $find ]; then
+        if [ -x $wc ]; then
+            echo "yes"
+            exit 0
+        else
+            echo "no (command 'wc' not found)"
+            exit 1
+        fi
+    else
+        echo "no (command 'find' not found)"
+        exit 1
+    fi
+fi
+
+if [ "$1" = "config" ]; then
+
+	echo 'graph_title max_user_watches and number of directories '
+	echo 'graph_args --upper-limit 1000 -l 0'
+	echo 'graph_vlabel count'
+	echo 'graph_category system'
+	echo 'graph_info This graph shows value of max_user_watches and number of subdirectories of designated directory.'
+	echo 'max_user_watches.label max_user_watches'
+	echo 'max_user_watches.draw LINE2'
+
+	stack=0
+	while [ $dirs  ]
+	do
+		dir=${dirs%%:*}
+		dirs=${dirs#*:}
+
+		basename=`basename $dir | sed y/./_/`
+		echo "$basename.label $dir"
+		if [ $stack -eq 0 ]; then
+			echo "$basename.draw AREA"
+			stack=1
+		else
+			echo "$basename.draw STACK"
+		fi
+		
+	done
+	exit 0
+fi
+
+
+# Output max_user_watches
+echo max_user_watches.value `cat ${max_user_watches}`
+
+# Output values from a cache file if it exists.
+if [ -e $cache ]; then
+	cat $cache
+else
+# Unavailable
+	_dirs=$dirs
+	while [ $_dirs  ]
+	do  
+		dir=${_dirs%%:*}
+		_dirs=${_dirs#*:}
+		basename=`basename $dir | sed y/./_/`
+		echo "$basename.value U"
+	done
+fi
+
+
+# delete a cache file if two hours have passed after its last modification time.
+find `dirname $cache` -name `basename $cache` -mmin +120 | while read file
+do
+	rm $file
+done
+
+# Create a cache file if cache files do not exists.
+(
+	if [ ! -e $cache ]; then
+		_dirs=$dirs
+		while [ $_dirs  ]
+		do  
+			dir=${_dirs%%:*}
+			_dirs=${_dirs#*:}
+			basename=`basename $dir | sed y/./_/`
+			echo "$basename.value "`$find $dir -type d | $wc -l` >> $cache
+		done
+	fi
+) 2>>/dev/null &
+
+exit 0
+
