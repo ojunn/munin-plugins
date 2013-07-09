@@ -1,0 +1,81 @@
+#!/bin/sh
+#
+# Disk Usage (per directory)
+#
+# sample conf
+# [du]
+# user root
+# env.dirs /var/log:/var/www
+#
+# crontab to using cache
+# 2 * * * * rm /tmp/munin-plugin-du & /usr/sbin/munin-run du
+#
+#%# family=auto
+#%# capabilities=autoconf
+
+du=${du:-`which du`}
+dirs=${dirs:-/home}":"
+cache=${cache:-/tmp/munin-plugin-du}
+
+if [ "$1" = "autoconf" ]; then
+        if [ -x $du ]; then
+                echo "yes"
+                exit 0
+        else
+                echo "no (command 'du' not found)"
+                exit 1
+        fi
+fi
+
+if [ "$1" = "config" ]; then
+
+	echo 'graph_title Disk usage '
+	echo 'graph_args --upper-limit 1000 -l 0'
+	echo 'graph_vlabel size (byte)'
+	echo 'graph_category disk'
+	echo 'graph_info This graph shows size of designated directories.'
+
+	stack=0
+	while [ $dirs  ]
+	do
+      		dir=${dirs%%:*}
+       		dirs=${dirs#*:}
+
+		basename=`basename $dir`
+		echo "$basename.label $dir"
+		if [ $stack -eq 0 ]; then
+			echo "$basename.draw AREA"
+			stack=1
+		else
+			echo "$basename.draw STACK"
+		fi
+		
+	done
+	exit 0
+fi
+
+# Delete a cache file if two hours have passed after its last modification time.
+find `dirname $cache` -name `basename $cache` -mmin +120 | while read file
+do
+	rm $file
+done
+
+if [ -e $cache ]; then
+# Use a cache file if it exists.
+	cat $cache
+else
+# Excecute du and create a cache file if cache does not exists.
+	while [ $dirs  ]
+	do  
+		dir=${dirs%%:*}
+		dirs=${dirs#*:}
+		basename=`basename $dir`
+		
+		size=`$du -sb $dir | cut -f 1`
+		echo "$basename.value $size"
+		echo "$basename.value $size" >> $cache
+	done
+fi
+
+exit 0
+
