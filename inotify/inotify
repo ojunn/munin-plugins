@@ -36,29 +36,24 @@ fi
 
 if [ "$1" = "config" ]; then
 
-	echo 'graph_title max_user_watches and number of directories '
-	echo 'graph_args --upper-limit 1000 -l 0'
+	echo 'graph_title max_user_watches and number of files '
+	echo 'graph_args --upper-limit 1000 -l 0 --base 1000'
 	echo 'graph_vlabel count'
 	echo 'graph_category system'
-	echo 'graph_info This graph shows value of max_user_watches and number of subdirectories of designated directory.'
+	echo 'graph_info This graph shows value of max_user_watches and the number of files in the designated directories.'
 	echo 'max_user_watches.label max_user_watches'
 	echo 'max_user_watches.draw AREA'
 
-	stack=0
-	while [ $dirs  ]
-	do
-		dir=${dirs%%:*}
-		dirs=${dirs#*:}
+	_dirs=$dirs
+	while [ $_dirs  ]
+	do  
+		dir=${_dirs%%:*}
+		_dirs=${_dirs#*:}
 
-		basename=`basename $dir | sed y/./_/`
-		echo "$basename.label $dir"
-		if [ $stack -eq 0 ]; then
-			echo "$basename.draw LINE2"
-			stack=1
-		else
-			echo "$basename.draw LINE2"
-		fi
-		
+		name=`echo $dir | sed y/.\\\\//__/`
+		echo "dir_${name}.label   dir   $dir"
+		echo "file_${name}.label  file  $dir"
+		echo "total_${name}.label total $dir"
 	done
 	exit 0
 fi
@@ -77,8 +72,10 @@ else
 	do  
 		dir=${_dirs%%:*}
 		_dirs=${_dirs#*:}
-		basename=`basename $dir | sed y/./_/`
-		echo "$basename.value U"
+		name=`echo $dir | sed y/.\\\\//__/`
+		echo "dir_${name}.value   U"
+		echo "file_${name}.value  U"
+		echo "total_${name}.value U"
 	done
 fi
 
@@ -97,8 +94,10 @@ done
 		do  
 			dir=${_dirs%%:*}
 			_dirs=${_dirs#*:}
-			basename=`basename $dir | sed y/./_/`
-			echo "$basename.value "`$find $dir -type d | $wc -l` >> $cache
+			name=`echo $dir | sed y/.\\\\//__/`
+			echo "dir_${name}.value   "`$find $dir -type d | $wc -l` >> $cache
+			echo "file_${name}.value  "`$find $dir -type f | $wc -l` >> $cache
+			echo "total_${name}.value "`$find $dir         | $wc -l` >> $cache
 		done
 	fi
 ) 2>>/dev/null &
